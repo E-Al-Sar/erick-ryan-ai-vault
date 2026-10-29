@@ -919,8 +919,11 @@ def main():
     html = HTML_TEMPLATE.replace("__VAULT_JSON__", vault_json)
     OUT_HTML.parent.mkdir(parents=True, exist_ok=True)
     OUT_HTML.write_text(html, encoding="utf-8")
+    root_html = ROOT / "index.html"
+    root_html.write_text(html, encoding="utf-8")
+    (ROOT / ".nojekyll").write_text("", encoding="utf-8")
     total_links = sum(len(n["outgoing"]) for n in notes.values())
-    print(f"[+] Built Quartz [[wikilink]] graph portal: {OUT_HTML}")
+    print(f"[+] Built Quartz [[wikilink]] graph portal: {OUT_HTML} (and {root_html})")
     print(f"    Notes indexed: {len(notes)}")
     print(f"    Resolved [[wikilink]] edges: {total_links}")
 
