@@ -522,7 +522,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     </div>
 
     <div class="search-box">
-      <input id="search-input" class="search-input" type="text" placeholder="Search 26 notes or [[wikilinks]]... ( / )" oninput="filterTree(this.value)">
+      <input id="search-input" class="search-input" type="text" placeholder="Search 34 notes or [[wikilinks]]... ( / )" oninput="filterTree(this.value)">
     </div>
 
     <div id="vault-tree" class="tree-container"></div>
@@ -660,12 +660,19 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     }
 
     function replaceWikilinksInline(text) {
-      return text.replace(/\[\[([^\[\]|]+)(?:\|([^\[\]]+))?\]\]/g, (_, target, alias) => {
+      // Protect fenced code blocks and inline backticks so `[[wikilinks]]` inside code stays literal
+      const codeSlots = [];
+      const protectedText = text.replace(/(`{1,3}[\s\S]*?`{1,3})/g, (m) => {
+        codeSlots.push(m);
+        return `@@CODE_SLOT_${codeSlots.length - 1}@@`;
+      });
+      const linked = protectedText.replace(/\[\[([^\[\]|]+)(?:\|([^\[\]]+))?\]\]/g, (_, target, alias) => {
         const slug = resolveSlug(target);
         const label = alias || target;
-        if (!slug) return `<span class="wikilink">${label}</span>`;
+        if (!slug) return `<code>[[${label}]]</code>`;
         return `<a class="wikilink" href="#${slug}" data-slug="${slug}" onclick="event.preventDefault(); openNote('${slug}')" onmouseenter="showPopover(event, '${slug}')" onmouseleave="hidePopover()">🔗 ${label}</a>`;
       });
+      return linked.replace(/@@CODE_SLOT_(\d+)@@/g, (_, idx) => codeSlots[Number(idx)]);
     }
 
     async function openNote(slug) {
@@ -770,14 +777,14 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         }
       }
 
-      // Run 140 ticks of spring layout
-      for (let step = 0; step < 140; step++) {
+      // Run 200 ticks of spring layout
+      for (let step = 0; step < 200; step++) {
         for (let i = 0; i < nodes.length; i++) {
           for (let j = i + 1; j < nodes.length; j++) {
             const a = nodes[i], b = nodes[j];
             let dx = b.x - a.x, dy = b.y - a.y;
             let dist = Math.sqrt(dx * dx + dy * dy) || 1;
-            const rep = (isFull ? 2200 : 420) / (dist * dist);
+            const rep = (isFull ? 11000 : 520) / (dist * dist);
             a.vx -= (dx / dist) * rep;
             a.vy -= (dy / dist) * rep;
             b.vx += (dx / dist) * rep;
@@ -787,18 +794,19 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         for (const [a, b] of edges) {
           let dx = b.x - a.x, dy = b.y - a.y;
           let dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          const targetDist = isFull ? 130 : 52;
-          const k = (dist - targetDist) * 0.035;
+          const targetDist = isFull ? 220 : 58;
+          const k = (dist - targetDist) * (isFull ? 0.018 : 0.035);
           a.vx += (dx / dist) * k;
           a.vy += (dy / dist) * k;
           b.vx -= (dx / dist) * k;
           b.vy -= (dy / dist) * k;
         }
         for (const n of nodes) {
-          n.vx += (W / 2 - n.x) * 0.02;
-          n.vy += (H / 2 - n.y) * 0.02;
-          n.x = Math.max(24, Math.min(W - 24, n.x + n.vx * 0.5));
-          n.y = Math.max(20, Math.min(H - 20, n.y + n.vy * 0.5));
+          const grav = isFull ? 0.005 : 0.02;
+          n.vx += (W / 2 - n.x) * grav;
+          n.vy += (H / 2 - n.y) * grav;
+          n.x = Math.max(45, Math.min(W - 165, n.x + n.vx * 0.5));
+          n.y = Math.max(28, Math.min(H - 28, n.y + n.vy * 0.5));
           n.vx *= 0.6;
           n.vy *= 0.6;
         }
@@ -890,9 +898,14 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     });
 
     window.addEventListener("DOMContentLoaded", () => {
-      const hash = window.location.hash.replace(/^#/, "");
+      const rawHash = window.location.hash.replace(/^#/, "");
+      const openModal = rawHash.endsWith(":graph");
+      const hash = rawHash.replace(/:graph$/, "");
       const start = resolveSlug(hash) || "70.01-Intelligence-Fit-to-Form-MOC";
       openNote(start);
+      if (openModal) {
+        setTimeout(() => openFullGraph(), 150);
+      }
     });
   </script>
 </body>
