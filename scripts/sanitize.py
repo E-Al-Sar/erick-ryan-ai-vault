@@ -28,7 +28,7 @@ SECRET_PATTERNS = [
 # Sensitive Infrastructure & PII Patterns
 TOPOLOGY_AND_PII_PATTERNS = [
     ("Local User Path", re.compile(r"/Users/[a-zA-Z0-9_\-]+/"), "~/"),
-    ("Homelab Hostnames", re.compile(r"\b(cluster-node|cluster-node|cluster-node|cluster-node|cluster-node)\b", re.IGNORECASE), "cluster-node"),
+    ("Homelab Hostnames", re.compile(r"(?<!-)\b(cluster-node|cluster-node|cluster-node|cluster-node|cluster-node)\b(?!-)", re.IGNORECASE), "cluster-node"),
     ("Private Subnet IPs", re.compile(r"\b(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b"), "10.0.0.x"),
     ("Tailscale IPs", re.compile(r"\b100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d{1,3}\.\d{1,3}\b"), "100.64.0.x"),
     ("Personal Email", re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"), "collaborator@example.com"),
